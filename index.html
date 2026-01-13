@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ProPresenter Lite v4.3｜提詞輸出（Setlist）</title>
+  <style>
+    :root{
+      --text:#ffd400;
+      --muted:#9aa3b2;
+      --border:rgba(255,255,255,.10);
+      --radius:14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --safeB: env(safe-area-inset-bottom, 0px);
+      --safeT: env(safe-area-inset-top, 0px);
+      --safeL: env(safe-area-inset-left, 0px);
+      --safeR: env(safe-area-inset-right, 0px);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: radial-gradient(1200px 700px at 70% 20%, #1c2442 0%, rgba(28,36,66,0) 60%),
+                  radial-gradient(900px 600px at 30% 80%, #3a1d3f 0%, rgba(58,29,63,0) 55%),
+                  #0b0c10;
+      color:#f2f3f5;
+      height:100vh;
+      overflow:hidden;
+      padding: calc(10px + var(--safeT)) calc(10px + var(--safeR)) calc(10px + var(--safeB)) calc(10px + var(--safeL));
+    }
+    .app{
+      height: calc(100vh - 20px - var(--safeT) - var(--safeB));
+      display:grid;
+      grid-template-columns: 360px 1fr 380px;
+      gap:12px;
+      min-height:0;
+    }
+
+    .panel{
+      background: rgba(15,17,22,.86);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-width: 0;
+      min-height:0;
+    }
+    .panel header{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .h{
+      font-weight:900;
+      letter-spacing:.4px;
+      font-size:14px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .mini{ font-size:12px; color:var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+    .body{
+      padding:12px;
+      overflow:auto;
+      min-height:0;
+    }
+
+    select, input, textarea{ font:inherit; }
+    select, input[type="text"], input[type="search"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(10,12,18,.9);
+      color:#fff;
+      outline:none;
+    }
+    input[type="range"]{ width:100%; }
+
+    button{
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(18,20,27,.65);
+      color:#fff;
+      transition:.12s ease;
+      font:inherit;
+      user-select:none;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.20); }
+    button.primary{
+      background: rgba(255,212,0,.12);
+      border-color: rgba(255,212,0,.30);
+      color: #ffd400;
+      font-weight:900;
+    }
+    button.ghost{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.85);
+    }
+
+    .row{ display:flex; gap:8px; align-items:center; }
+    .row.wrap{ flex-wrap:wrap; }
+    .grow{ flex:1; min-width:0; }
+    .list{ display:flex; flex-direction:column; gap:10px; }
+
+    .card{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,18,.55);
+      border-radius: 14px;
+      padding:12px;
+    }
+    .songItem{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      border-radius: 12px;
+      padding:10px;
+      cursor:pointer;
+      transition:.12s ease;
+    }
+    .songItem:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); }
+    .songItem.active{
+      border-color: rgba(255,212,0,.65);
+      box-shadow: 0 0 0 2px rgba(255,212,0,.12) inset;
+    }
+    .songTop{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;}
+    .songName{ font-weight:900; font-size:13px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+    .pill{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,212,0,.28);
+      background: rgba(255,212,0,.08);
+      color: #ffd400;
+      white-space:nowrap;
+    }
+    .sub{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.3;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .smallSegWrap{
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .smallSeg{
+      padding:10px 12px;
+      font-size:12px;
+      color: rgba(255,255,255,.88);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .midTop{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .midTitle{ font-weight:900; letter-spacing:.3px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .midHint{ font-size:12px; color: var(--muted); overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+    .segGrid{
+      display:grid;
+      gap:12px;
+      min-height:0;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: stretch;
+    }
+    #middle .body{
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .segBtn{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.45);
+      border-radius: 16px;
+      padding:14px 14px;
+      cursor:pointer;
+      transition:.12s ease;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-height: 140px;
+      justify-content:center;
+    }
+    .segBtn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.20); }
+    .segBtn.active{
+      border-color: rgba(255,212,0,.65);
+      box-shadow: 0 0 0 2px rgba(255,212,0,.12) inset;
+    }
+    .segMeta{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      font-size:12px;
+      color: rgba(255,255,255,.75);
+      font-weight:800;
+    }
+    .segText{
+      font-weight:900;
+      letter-spacing:.4px;
+      line-height:1.15;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 34px;
+      color: rgba(255,255,255,.92);
+    }
+
+    .group{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,18,.55);
+      border-radius: 14px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .groupTitle{
+      font-weight:900;
+      font-size:13px;
+      margin-bottom:10px;
+      color: rgba(255,255,255,.86);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+    .field label{
+      font-size:12px;
+      color: var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .colorRow{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+    }
+    .colorRow input[type="color"]{
+      width: 50px; height: 36px;
+      border:none; background: transparent; padding:0;
+      cursor:pointer;
+    }
+
+    @media (max-width: 1100px){
+      .app{ grid-template-columns: 1fr; }
+      #middle .body{ max-width: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/** =========================
+ * 0) Demo Data
+ * ========================= */
+const DEFAULT_SONGS = [
+  { id:"s1", name:"神同在（示範）", slides:[ { title:"主歌", singer:"主唱", text:"祢同在 祢同在\n我心不再搖動" }, { title:"副歌", singer:"合唱", text:"神同在 充滿這裡\n我敬拜 直到永遠" } ] },
+  { id:"s2", name:"不變的應許（示範）", slides:[ { title:"主歌", singer:"主唱", text:"祢的應許 永不改變\n我緊緊抓住不放" }, { title:"副歌", singer:"合唱", text:"祢信實 直到永遠\n我必看見祢作為" } ] },
+  { id:"s3", name:"盼望之路（示範）", slides:[ { title:"主歌", singer:"主唱", text:"黑夜雖長 祢仍同行\n盼望之光不熄滅" }, { title:"副歌", singer:"合唱", text:"我走在 盼望之路\n因祢同在 我不懼怕" } ] },
+];
+
+const DEFAULT_SETLISTS = [
+  { id:"set1", name:"主日", items:[{songId:"s1"},{songId:"s2"},{songId:"s3"}] },
+];
+
+const STORAGE_KEY_SONGS = "pp_lite_songs_v43";
+const STORAGE_KEY_SETLISTS = "pp_lite_setlists_v43";
+const STORAGE_KEY_STATE = "pp_lite_state_v43";
+const SNAPSHOT_PREFIX = "PP_LITE_SNAPSHOT_V43:";
+
+/** =========================
+ * 1) Mode
+ * ========================= */
+const params = new URLSearchParams(location.search);
+const IS_OUTPUT = params.get("output") === "1";
+
+let bc = null;
+try { bc = new BroadcastChannel("pp_lite_channel_v43"); } catch(e) { bc = null; }
+
+/** =========================
+ * 2) Data
+ * ========================= */
+let SONGS = loadSongs();
+let SETLISTS = loadSetlists();
+
+function loadSongs(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY_SONGS);
+    if(!raw){
+      localStorage.setItem(STORAGE_KEY_SONGS, JSON.stringify(DEFAULT_SONGS));
+      return deepClone(DEFAULT_SONGS);
+    }
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed) || parsed.length===0) throw new Error("Invalid songs");
+    return parsed.map(s=>({
+      id: String(s.id || genId("s")),
+      name: String(s.name || "未命名歌曲"),
+      slides: Array.isArray(s.slides) ? s.slides.map(sl=>({
+        title: String(sl.title || "段落"),
+        singer: String(sl.singer || "主唱"),
+        text: String(sl.text || "")
+      })) : []
+    }));
+  }catch(e){
+    localStorage.setItem(STORAGE_KEY_SONGS, JSON.stringify(DEFAULT_SONGS));
+    return deepClone(DEFAULT_SONGS);
+  }
+}
+function saveSongs(){ localStorage.setItem(STORAGE_KEY_SONGS, JSON.stringify(SONGS)); }
+
+function loadSetlists(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY_SETLISTS);
+    if(!raw){
+      localStorage.setItem(STORAGE_KEY_SETLISTS, JSON.stringify(DEFAULT_SETLISTS));
+      return deepClone(DEFAULT_SETLISTS);
+    }
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed) || parsed.length===0) throw new Error("Invalid setlists");
+    return parsed.map(x=>({
+      id: String(x.id || genId("set")),
+      name: String(x.name || "未命名清單"),
+      items: Array.isArray(x.items) ? x.items.map(it=>({ songId:String(it.songId||"") })).filter(it=>it.songId) : []
+    }));
+  }catch(e){
+    localStorage.setItem(STORAGE_KEY_SETLISTS, JSON.stringify(DEFAULT_SETLISTS));
+    return deepClone(DEFAULT_SETLISTS);
+  }
+}
+function saveSetlists(){ localStorage.setItem(STORAGE_KEY_SETLISTS, JSON.stringify(SETLISTS)); }
+
+/** =========================
+ * 3) State
+ * ========================= */
+const DEFAULT_STATE = {
+  setlistId: SETLISTS[0]?.id || "set1",
+  songId: null,
+  slideIndex: 0,
+
+  fontSize: 86,
+  fontFamily: 'system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
+  fontColor: "#ffd400",
+
+  position: "bottom",
+  bottomPaddingVh: 8,
+
+  strokeWidth: 6,
+  strokeColor: "#000000",
+
+  shadowOpacity: 0.55,
+  shadowBlur: 12,
+  shadowOffsetY: 3,
+
+  outputBg: "black", // black | transparent
+
+  // ✅ 字幕底色（可關/可調顏色/透明度）— v4.3：全寬底色（左右寬度=視窗）
+  captionBgEnabled: true,
+  captionBgColor: "#6b7280",
+  captionBgOpacity: 0.55,
+};
+
+let state = loadState();
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY_STATE);
+    if(!raw) return {...DEFAULT_STATE};
+    const s = JSON.parse(raw);
+    return {
+      ...DEFAULT_STATE,
+      ...s,
+      slideIndex: Number(s.slideIndex ?? 0),
+      fontSize: Number(s.fontSize ?? DEFAULT_STATE.fontSize),
+      bottomPaddingVh: Number(s.bottomPaddingVh ?? DEFAULT_STATE.bottomPaddingVh),
+      strokeWidth: Number(s.strokeWidth ?? DEFAULT_STATE.strokeWidth),
+      shadowOpacity: Number(s.shadowOpacity ?? DEFAULT_STATE.shadowOpacity),
+      shadowBlur: Number(s.shadowBlur ?? DEFAULT_STATE.shadowBlur),
+      shadowOffsetY: Number(s.shadowOffsetY ?? DEFAULT_STATE.shadowOffsetY),
+      outputBg: (s.outputBg==="transparent" ? "transparent" : "black"),
+      captionBgEnabled: Boolean(s.captionBgEnabled ?? DEFAULT_STATE.captionBgEnabled),
+      captionBgOpacity: Number(s.captionBgOpacity ?? DEFAULT_STATE.captionBgOpacity),
+      captionBgColor: String(s.captionBgColor ?? DEFAULT_STATE.captionBgColor),
+    };
+  }catch(e){
+    return {...DEFAULT_STATE};
+  }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(state)); }
+
+function genId(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + Date.now().toString(16); }
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
+}
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+
+function getSongById(id){ return SONGS.find(s=>s.id===id) || null; }
+function getSetlistById(id){ return SETLISTS.find(x=>x.id===id) || SETLISTS[0] || null; }
+
+function resolveState(){
+  if(!SETLISTS.some(x=>x.id===state.setlistId)){
+    state.setlistId = SETLISTS[0]?.id || "set1";
+  }
+  const set = getSetlistById(state.setlistId);
+  const firstSongId = set?.items?.[0]?.songId || SONGS[0]?.id || null;
+
+  if(!state.songId || !set?.items?.some(it=>it.songId===state.songId)){
+    state.songId = firstSongId;
+    state.slideIndex = 0;
+  }
+  if(state.songId && !SONGS.some(s=>s.id===state.songId)){
+    state.songId = firstSongId;
+    state.slideIndex = 0;
+  }
+
+  const song = getSongById(state.songId);
+  const len = song?.slides?.length || 0;
+  state.slideIndex = clamp(state.slideIndex, 0, Math.max(0, len-1));
+  if(len===0) state.slideIndex = 0;
+
+  saveState();
+}
+
+function hexToRgba(hex, a){
+  const h = String(hex||"").replace("#","").trim();
+  if(!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(0,0,0,${clamp(a,0,1)})`;
+  const r = parseInt(h.slice(0,2),16);
+  const g = parseInt(h.slice(2,4),16);
+  const b = parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${clamp(a,0,1)})`;
+}
+
+/** =========================
+ * 4) Sync
+ * ========================= */
+let outputWin = null;
+function broadcast(payload){
+  if(bc){ try{ bc.postMessage(payload); }catch(e){} }
+  try{ localStorage.setItem("pp_lite_last_sync_v43", JSON.stringify({payload, t:Date.now()})); }catch(e){}
+}
+function postToOutput(payload){
+  if(outputWin && !outputWin.closed){
+    try{ outputWin.postMessage(payload, "*"); }catch(e){}
+  }
+}
+function packSnapshot(){
+  return JSON.stringify({ songs: SONGS, setlists: SETLISTS, state });
+}
+function syncAll(){
+  const payload = { type:"SYNC", songs: SONGS, setlists: SETLISTS, state };
+  broadcast(payload); postToOutput(payload);
+  saveSongs(); saveSetlists(); saveState();
+}
+function syncStateOnly(){
+  const payload = { type:"STATE", state };
+  broadcast(payload); postToOutput(payload);
+  saveState();
+}
+
+/** =========================
+ * 5) Output window
+ * ========================= */
+function mountOutput(){
+  const app = document.getElementById("app");
+  if(app) app.style.display="none";
+
+  // snapshot first
+  try{
+    if(typeof window.name === "string" && window.name.startsWith(SNAPSHOT_PREFIX)){
+      const raw = window.name.slice(SNAPSHOT_PREFIX.length);
+      const snap = JSON.parse(raw);
+      if(Array.isArray(snap?.songs)) SONGS = snap.songs;
+      if(Array.isArray(snap?.setlists)) SETLISTS = snap.setlists;
+      if(snap?.state) state = snap.state;
+    }
+  }catch(e){}
+
+  function applyBg(){
+    document.body.style.margin="0";
+    document.body.style.padding="0";
+    document.body.style.height="100vh";
+    document.body.style.overflow="hidden";
+    document.body.style.background = (state.outputBg==="transparent") ? "transparent" : "#000";
+  }
+
+  // Layer: band (full width) + text (centered)
+  const band = document.createElement("div");
+  band.style.position = "fixed";
+  band.style.left = "0";
+  band.style.right = "0";
+  band.style.top = "0";
+  band.style.height = "0";
+  band.style.zIndex = "1";
+  band.style.display = "none";
+  band.style.pointerEvents = "none";
+  band.style.backdropFilter = "none";
+  document.body.appendChild(band);
+
+  const wrap = document.createElement("div");
+  wrap.style.position="absolute";
+  wrap.style.inset="0";
+  wrap.style.zIndex="2";
+  wrap.style.display="flex";
+  wrap.style.justifyContent="center";
+  wrap.style.textAlign="center";
+  wrap.style.padding="0 6vw";
+  wrap.style.pointerEvents="none";
+  document.body.appendChild(wrap);
+
+  const txt = document.createElement("div");
+  txt.style.fontWeight="900";
+  txt.style.letterSpacing=".6px";
+  txt.style.lineHeight="1.15";
+  txt.style.whiteSpace="pre-wrap";
+  txt.style.wordBreak="break-word";
+  txt.style.maxWidth="100%";
+  txt.style.pointerEvents="none";
+  wrap.appendChild(txt);
+
+  function applyTextStyle(){
+    applyBg();
+
+    if(state.position==="bottom"){
+      wrap.style.alignItems="flex-end";
+      wrap.style.paddingBottom = `${clamp(state.bottomPaddingVh,0,30)}vh`;
+    }else{
+      wrap.style.alignItems="center";
+      wrap.style.paddingBottom="0";
+    }
+
+    txt.style.fontSize = clamp(state.fontSize, 18, 260) + "px";
+    txt.style.fontFamily = state.fontFamily || DEFAULT_STATE.fontFamily;
+    txt.style.color = state.fontColor || DEFAULT_STATE.fontColor;
+
+    const sw = clamp(Number(state.strokeWidth||0),0,30);
+    txt.style.webkitTextStroke = sw ? `${sw}px ${state.strokeColor||"#000"}` : "0px transparent";
+
+    const op = clamp(Number(state.shadowOpacity ?? 0.55),0,1);
+    const blur = clamp(Number(state.shadowBlur ?? 12),0,80);
+    const oy = clamp(Number(state.shadowOffsetY ?? 3),0,40);
+    txt.style.textShadow = `0 ${oy}px ${blur}px rgba(0,0,0,${op})`;
+
+    if(state.captionBgEnabled){
+      band.style.display = "block";
+      band.style.background = hexToRgba(state.captionBgColor || "#6b7280", clamp(Number(state.captionBgOpacity ?? 0.55),0,1));
+      band.style.borderTop = "1px solid rgba(255,255,255,.06)";
+      band.style.borderBottom = "1px solid rgba(255,255,255,.06)";
+    }else{
+      band.style.display = "none";
+      band.style.height = "0";
+    }
+  }
+
+  function layoutBand(){
+    if(!state.captionBgEnabled) return;
+    // 依文字實際位置，讓底色「全寬」貼住文字區域
+    const rect = txt.getBoundingClientRect();
+    const padY = Math.max(14, Math.round((Number(state.fontSize)||80) * 0.18)); // 視覺舒服
+    const top = Math.max(0, Math.floor(rect.top - padY));
+    const h = Math.min(window.innerHeight - top, Math.ceil(rect.height + padY*2));
+    band.style.top = top + "px";
+    band.style.height = h + "px";
+  }
+
+  function render(){
+    resolveState();
+    const set = getSetlistById(state.setlistId);
+    const song = getSongById(state.songId);
+    const slide = song?.slides?.[state.slideIndex] || song?.slides?.[0] || null;
+
+    txt.textContent = slide ? slide.text : "（此歌曲沒有段落）";
+    document.title = `輸出｜${set?.name||"—"}｜${song?.name||"—"}`;
+
+    applyTextStyle();
+    requestAnimationFrame(layoutBand);
+  }
+
+  window.addEventListener("resize", ()=>requestAnimationFrame(()=>{ applyTextStyle(); layoutBand(); }));
+
+  window.addEventListener("message", (ev)=>{
+    const d = ev.data || {};
+    if(d.type==="SYNC"){
+      if(Array.isArray(d.songs)) SONGS = d.songs;
+      if(Array.isArray(d.setlists)) SETLISTS = d.setlists;
+      if(d.state) state = d.state;
+      render();
+    }else if(d.type==="STATE"){
+      if(d.state) state = d.state;
+      render();
+    }
+  });
+  if(bc){
+    bc.onmessage = (ev)=>{
+      const d = ev.data || {};
+      if(d.type==="SYNC"){
+        if(Array.isArray(d.songs)) SONGS = d.songs;
+        if(Array.isArray(d.setlists)) SETLISTS = d.setlists;
+        if(d.state) state = d.state;
+        render();
+      }else if(d.type==="STATE"){
+        if(d.state) state = d.state;
+        render();
+      }
+    };
+  }
+
+  try{
+    const last = localStorage.getItem("pp_lite_last_sync_v43");
+    if(last){
+      const {payload} = JSON.parse(last);
+      if(payload?.type==="SYNC"){
+        SONGS = payload.songs || SONGS;
+        SETLISTS = payload.setlists || SETLISTS;
+        state = payload.state || state;
+      }
+    }
+  }catch(e){}
+
+  try{ window.opener?.postMessage?.({ type:"OUTPUT_READY" }, "*"); }catch(e){}
+  render();
+}
+
+/** =========================
+ * 6) Controller
+ * ========================= */
+let SYSTEM_FONTS = [];
+function hasLocalFontApi(){
+  return typeof window.queryLocalFonts === "function";
+}
+async function loadSystemFonts(){
+  if(!hasLocalFontApi()){
+    throw new Error("此瀏覽器不支援 Local Font Access API。請用 Chrome/Edge，或改用「自訂字體名稱」。");
+  }
+  const fonts = await window.queryLocalFonts();
+  const map = new Map();
+  for(const f of fonts){
+    const family = (f.family || f.fullName || "").trim();
+    if(!family) continue;
+    if(!map.has(family)){
+      map.set(family, {family, fullName: (f.fullName||family)});
+    }
+  }
+  SYSTEM_FONTS = Array.from(map.values()).sort((a,b)=>a.family.localeCompare(b.family, "zh-Hant"));
+  return SYSTEM_FONTS;
+}
+
+function mountController(){
+  resolveState();
+
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <!-- Left -->
+    <section class="panel" id="left">
+      <header>
+        <div class="h">📌 預覽 / 清單</div>
+        <div class="mini" id="clock">--:--</div>
+      </header>
+      <div class="body">
+        <div class="list">
+          <div class="card">
+            <div class="field">
+              <label>播放清單（Setlist）<span class="mini" id="setCount"></span></label>
+              <select id="setSelect"></select>
+            </div>
+            <div class="row wrap">
+              <button class="primary" id="btnOpenOut">🖥️ 開啟輸出視窗</button>
+              <button class="ghost" id="btnEditSetlists">編輯清單</button>
+              <button class="ghost" id="btnEditLibrary">歌曲庫</button>
+            </div>
+            <div class="mini" style="margin-top:8px;">
+              快捷鍵：<b>1–9</b> 直接切到第 1–9 段（本歌）
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row" style="justify-content:space-between;">
+              <div style="font-weight:900;">本次清單歌曲</div>
+              <div class="mini" id="leftMeta">—</div>
+            </div>
+          </div>
+          <div id="setSongList" class="list"></div>
+
+          <div class="card">
+            <div class="row" style="justify-content:space-between;">
+              <div style="font-weight:900;">目前歌｜段落預覽</div>
+              <div class="mini" id="songMeta">—</div>
+            </div>
+            <div class="smallSegWrap">
+              <div class="smallSeg" id="slidePreview">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Middle -->
+    <section class="panel" id="middle">
+      <header>
+        <div class="midTop">
+          <div class="midTitle" id="midTitle">—</div>
+          <div class="midHint" id="midHint">點選段落即可顯示並同步輸出</div>
+        </div>
+        <div class="mini" id="outStatus">輸出：未開啟</div>
+      </header>
+      <div class="body" style="display:flex; flex-direction:column; gap:12px; min-height:0;">
+        <div class="segGrid" id="segGrid"></div>
+      </div>
+    </section>
+
+    <!-- Right -->
+    <section class="panel" id="right">
+      <header>
+        <div class="h">🎨 字體 / 投影樣式</div>
+        <div class="mini">同步到輸出</div>
+      </header>
+      <div class="body" id="stylePanel"></div>
+    </section>
+  `;
+
+  const setSelect = document.getElementById("setSelect");
+  const setCount = document.getElementById("setCount");
+  const setSongList = document.getElementById("setSongList");
+  const leftMeta = document.getElementById("leftMeta");
+  const songMeta = document.getElementById("songMeta");
+  const slidePreview = document.getElementById("slidePreview");
+
+  const midTitle = document.getElementById("midTitle");
+  const outStatus = document.getElementById("outStatus");
+  const segGrid = document.getElementById("segGrid");
+
+  const btnOpenOut = document.getElementById("btnOpenOut");
+  const stylePanel = document.getElementById("stylePanel");
+
+  function applyPreviewTextFX(){
+    slidePreview.style.fontFamily = state.fontFamily || DEFAULT_STATE.fontFamily;
+    slidePreview.style.color = state.fontColor || DEFAULT_STATE.fontColor;
+
+    const sw = clamp(Number(state.strokeWidth||0),0,30);
+    slidePreview.style.webkitTextStroke = sw ? `${sw}px ${state.strokeColor||"#000"}` : "0px transparent";
+
+    const op = clamp(Number(state.shadowOpacity ?? 0.55),0,1);
+    const blur = clamp(Number(state.shadowBlur ?? 12),0,80);
+    const oy = clamp(Number(state.shadowOffsetY ?? 3),0,40);
+    slidePreview.style.textShadow = `0 ${oy}px ${blur}px rgba(0,0,0,${op})`;
+
+    // 預覽底色（在左側預覽區塊內全寬）
+    const wrap = slidePreview.parentElement.parentElement; // smallSegWrap
+    if(state.captionBgEnabled){
+      wrap.style.background = hexToRgba(state.captionBgColor || "#6b7280", clamp(Number(state.captionBgOpacity??0.55),0,1));
+      wrap.style.border = "1px solid rgba(255,255,255,.10)";
+    }else{
+      wrap.style.background = "rgba(0,0,0,.18)";
+      wrap.style.border = "1px solid rgba(255,255,255,.08)";
+    }
+  }
+
+  function renderSetSelect(){
+    setSelect.innerHTML = "";
+    SETLISTS.forEach(s=>{
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name;
+      setSelect.appendChild(opt);
+    });
+    setSelect.value = state.setlistId;
+    setCount.textContent = `（${SETLISTS.length}）`;
+  }
+
+  function getSetSongs(set){
+    const ids = (set?.items || []).map(it=>it.songId);
+    return ids.map(id=>getSongById(id)).filter(Boolean);
+  }
+
+  function renderSetSongs(){
+    const set = getSetlistById(state.setlistId);
+    const songs = getSetSongs(set);
+
+    leftMeta.textContent = `${songs.length} 首`;
+    setSongList.innerHTML = "";
+
+    if(songs.length===0){
+      const div = document.createElement("div");
+      div.className="card";
+      div.innerHTML = `<div class="mini">此清單目前沒有歌曲。</div>`;
+      setSongList.appendChild(div);
+      return;
+    }
+
+    songs.forEach((song, idx)=>{
+      const item = document.createElement("div");
+      item.className = "songItem" + (song.id===state.songId ? " active" : "");
+      const first = song.slides?.[0]?.text || "";
+      item.innerHTML = `
+        <div class="songTop">
+          <div class="songName">${escapeHtml(song.name)}</div>
+          <span class="pill">#${idx+1}</span>
+        </div>
+        <div class="sub">${escapeHtml(first).replaceAll("\n"," / ")}</div>
+      `;
+      item.onclick = ()=>{
+        state.songId = song.id;
+        state.slideIndex = 0;
+        resolveState();
+        renderAll();
+        syncStateOnly();
+      };
+      setSongList.appendChild(item);
+    });
+  }
+
+  function renderMiddle(){
+    const set = getSetlistById(state.setlistId);
+    const song = getSongById(state.songId);
+
+    midTitle.textContent = `${set?.name||"—"}｜${song?.name||"—"}`;
+    outStatus.textContent = (outputWin && !outputWin.closed) ? "輸出：已開啟" : "輸出：未開啟";
+
+    const slides = song?.slides || [];
+    songMeta.textContent = slides.length ? `${slides.length} 段` : "0 段";
+    const cur = slides[state.slideIndex] || slides[0] || null;
+    slidePreview.textContent = cur ? cur.text : "（此歌曲沒有段落）";
+
+    segGrid.innerHTML = "";
+    if(slides.length===0){
+      const empty = document.createElement("div");
+      empty.className="card";
+      empty.innerHTML = `<div class="mini">此歌曲沒有段落。</div>`;
+      segGrid.appendChild(empty);
+      return;
+    }
+
+    slides.forEach((sl, i)=>{
+      const btn = document.createElement("div");
+      btn.className = "segBtn" + (i===state.slideIndex ? " active" : "");
+      btn.innerHTML = `
+        <div class="segMeta">
+          <div>${escapeHtml(sl.singer)}｜${escapeHtml(sl.title)}</div>
+          <div class="mini">#${i+1}/${slides.length}</div>
+        </div>
+        <div class="segText"></div>
+      `;
+      btn.querySelector(".segText").textContent = sl.text || "";
+      btn.onclick = ()=>{
+        state.slideIndex = i;
+        resolveState();
+        renderAll();
+        syncStateOnly();
+      };
+      segGrid.appendChild(btn);
+    });
+  }
+
+  function renderStylePanel(){
+    stylePanel.innerHTML = `
+      <div class="group">
+        <div class="groupTitle"><span>字體</span><span class="mini">投影輸出</span></div>
+
+        <div class="field">
+          <label><span>字體大小</span><span id="fontVal">${state.fontSize}px</span></label>
+          <input id="fontRange" type="range" min="36" max="180" value="${state.fontSize}" />
+        </div>
+
+        <div class="field">
+          <label>常用字體</label>
+          <select id="fontFamilySelect">
+            <option value='system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif'>系統預設（推薦）</option>
+            <option value='"Noto Sans TC", system-ui, -apple-system, sans-serif'>Noto Sans TC</option>
+            <option value='"Microsoft JhengHei", system-ui, -apple-system, sans-serif'>微軟正黑體</option>
+            <option value='"PingFang TC", system-ui, -apple-system, sans-serif'>蘋方（PingFang）</option>
+            <option value='"DFKai-SB","標楷體",serif'>標楷體（DFKai-SB）</option>
+            <option value='"PMingLiU","新細明體",serif'>新細明體（PMingLiU）</option>
+            <option value='Arial, system-ui, sans-serif'>Arial</option>
+            <option value='monospace'>等寬字（monospace）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>系統所有字體（Chrome/Edge）<span class="mini" id="sysFontStatus">未載入</span></label>
+          <div class="row wrap">
+            <button class="ghost" id="btnLoadSysFonts">載入系統字體</button>
+            <button class="ghost" id="btnClearSysFonts">清空</button>
+          </div>
+          <select id="sysFontSelect" disabled>
+            <option>（尚未載入）</option>
+          </select>
+          <div class="mini">※ 第一次會跳出權限詢問；不支援時請用「自訂字體名稱」。</div>
+        </div>
+
+        <div class="field">
+          <label>自訂字體名稱（系統字體）</label>
+          <input id="fontCustom" type="text" placeholder='例如：華康娃娃體 / 標楷體 / 新細明體' />
+        </div>
+
+        <div class="field">
+          <label><span>字體顏色</span><span id="colorVal">${(state.fontColor||"#ffd400").toLowerCase()}</span></label>
+          <div class="colorRow">
+            <input id="fontColor" type="color" value="${state.fontColor||"#ffd400"}" />
+            <button class="ghost" id="btnColorYellow">黃</button>
+            <button class="ghost" id="btnColorWhite">白</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="groupTitle"><span>字幕底色（全寬）</span><span class="mini">可關/可調</span></div>
+
+        <div class="field">
+          <label>底色開關</label>
+          <select id="capBgEnable">
+            <option value="on">開</option>
+            <option value="off">關</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label><span>顏色</span><span id="capBgColorVal">${(state.captionBgColor||"#6b7280").toLowerCase()}</span></label>
+          <div class="colorRow">
+            <input id="capBgColor" type="color" value="${state.captionBgColor||"#6b7280"}" />
+            <button class="ghost" id="btnCapGray">灰</button>
+            <button class="ghost" id="btnCapBlack">黑</button>
+          </div>
+          <div class="field" style="margin:8px 0 0;">
+            <label>自定義 HEX（例如 #1f2937）</label>
+            <input id="capBgHex" type="text" value="${(state.captionBgColor||"#6b7280")}" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label><span>透明度</span><span id="capBgOpVal">${Number(state.captionBgOpacity ?? 0.55).toFixed(2)}</span></label>
+          <input id="capBgOpRange" type="range" min="0" max="1" step="0.05" value="${Number(state.captionBgOpacity ?? 0.55)}" />
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="groupTitle"><span>輸出背景</span><span class="mini">黑底/透明</span></div>
+        <div class="field">
+          <label>背景</label>
+          <select id="bgSelect">
+            <option value="black">黑底</option>
+            <option value="transparent">透明</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="groupTitle"><span>字幕位置</span><span class="mini">置底字幕</span></div>
+        <div class="field">
+          <label>位置</label>
+          <select id="posSelect">
+            <option value="bottom">置底</option>
+            <option value="center">置中</option>
+          </select>
+        </div>
+        <div class="field">
+          <label><span>置底距離</span><span id="padVal">${state.bottomPaddingVh}vh</span></label>
+          <input id="padRange" type="range" min="0" max="20" value="${state.bottomPaddingVh}" />
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="groupTitle"><span>描邊</span><span class="mini">黑邊</span></div>
+        <div class="field">
+          <label><span>粗細</span><span id="strokeVal">${state.strokeWidth}px</span></label>
+          <input id="strokeRange" type="range" min="0" max="18" value="${state.strokeWidth}" />
+        </div>
+        <div class="field">
+          <label><span>顏色</span><span id="strokeColorVal">${(state.strokeColor||"#000000").toLowerCase()}</span></label>
+          <div class="colorRow">
+            <input id="strokeColor" type="color" value="${state.strokeColor||"#000000"}" />
+            <button class="ghost" id="btnStrokeBlack">黑</button>
+            <button class="ghost" id="btnStrokeNone">無</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="groupTitle"><span>陰影</span><span class="mini">強度</span></div>
+        <div class="field">
+          <label><span>陰影強度</span><span id="shOpVal">${Number(state.shadowOpacity).toFixed(2)}</span></label>
+          <input id="shOpRange" type="range" min="0" max="1" step="0.05" value="${state.shadowOpacity}" />
+        </div>
+        <div class="field">
+          <label><span>模糊</span><span id="shBlurVal">${state.shadowBlur}px</span></label>
+          <input id="shBlurRange" type="range" min="0" max="40" value="${state.shadowBlur}" />
+        </div>
+        <div class="field">
+          <label><span>位移Y</span><span id="shYVal">${state.shadowOffsetY}px</span></label>
+          <input id="shYRange" type="range" min="0" max="16" value="${state.shadowOffsetY}" />
+        </div>
+      </div>
+    `;
+
+    const fontRange = document.getElementById("fontRange");
+    const fontVal = document.getElementById("fontVal");
+    const fontFamilySelect = document.getElementById("fontFamilySelect");
+    const fontCustom = document.getElementById("fontCustom");
+    const fontColor = document.getElementById("fontColor");
+    const colorVal = document.getElementById("colorVal");
+
+    const sysFontStatus = document.getElementById("sysFontStatus");
+    const btnLoadSysFonts = document.getElementById("btnLoadSysFonts");
+    const btnClearSysFonts = document.getElementById("btnClearSysFonts");
+    const sysFontSelect = document.getElementById("sysFontSelect");
+
+    const capBgEnable = document.getElementById("capBgEnable");
+    const capBgColor = document.getElementById("capBgColor");
+    const capBgColorVal = document.getElementById("capBgColorVal");
+    const capBgHex = document.getElementById("capBgHex");
+    const capBgOpRange = document.getElementById("capBgOpRange");
+    const capBgOpVal = document.getElementById("capBgOpVal");
+
+    const bgSelect = document.getElementById("bgSelect");
+    const posSelect = document.getElementById("posSelect");
+    const padRange = document.getElementById("padRange");
+    const padVal = document.getElementById("padVal");
+
+    const strokeRange = document.getElementById("strokeRange");
+    const strokeVal = document.getElementById("strokeVal");
+    const strokeColor = document.getElementById("strokeColor");
+    const strokeColorVal = document.getElementById("strokeColorVal");
+
+    const shOpRange = document.getElementById("shOpRange");
+    const shOpVal = document.getElementById("shOpVal");
+    const shBlurRange = document.getElementById("shBlurRange");
+    const shBlurVal = document.getElementById("shBlurVal");
+    const shYRange = document.getElementById("shYRange");
+    const shYVal = document.getElementById("shYVal");
+
+    fontFamilySelect.value = state.fontFamily || DEFAULT_STATE.fontFamily;
+    posSelect.value = state.position || "bottom";
+    bgSelect.value = state.outputBg || "black";
+    capBgEnable.value = state.captionBgEnabled ? "on" : "off";
+
+    fontRange.oninput = (e)=>{
+      state.fontSize = Number(e.target.value);
+      fontVal.textContent = state.fontSize + "px";
+      syncStateOnly(); applyPreviewTextFX();
+    };
+
+    fontFamilySelect.onchange = (e)=>{
+      state.fontFamily = e.target.value;
+      fontCustom.value = "";
+      sysFontSelect.value = "";
+      syncStateOnly(); applyPreviewTextFX();
+    };
+
+    fontCustom.onchange = (e)=>{
+      const v = (e.target.value||"").trim();
+      if(v){
+        state.fontFamily = `"${v}", system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+        fontFamilySelect.value = state.fontFamily;
+        sysFontSelect.value = "";
+        syncStateOnly(); applyPreviewTextFX();
+      }
+    };
+
+    function fillSysFonts(){
+      if(!SYSTEM_FONTS.length){
+        sysFontSelect.disabled = true;
+        sysFontSelect.innerHTML = `<option>（尚未載入）</option>`;
+        sysFontStatus.textContent = "未載入";
+        return;
+      }
+      sysFontSelect.disabled = false;
+      sysFontSelect.innerHTML = `<option value="">（選擇一個系統字體）</option>` + SYSTEM_FONTS.map(f=>{
+        const v = f.family.replaceAll('"','');
+        return `<option value="${escapeHtml(v)}">${escapeHtml(f.family)}</option>`;
+      }).join("");
+      sysFontStatus.textContent = `已載入 ${SYSTEM_FONTS.length}`;
+    }
+
+    btnLoadSysFonts.onclick = async ()=>{
+      sysFontStatus.textContent = "載入中...";
+      try{
+        await loadSystemFonts();
+        fillSysFonts();
+      }catch(err){
+        sysFontStatus.textContent = "不支援/被拒絕";
+        alert(String(err.message || err));
+      }
+    };
+    btnClearSysFonts.onclick = ()=>{ SYSTEM_FONTS = []; fillSysFonts(); };
+    sysFontSelect.onchange = (e)=>{
+      const fam = (e.target.value||"").trim();
+      if(!fam) return;
+      state.fontFamily = `"${fam}", system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+      fontCustom.value = fam;
+      syncStateOnly(); applyPreviewTextFX();
+    };
+
+    fontColor.oninput = (e)=>{
+      state.fontColor = e.target.value;
+      colorVal.textContent = state.fontColor.toLowerCase();
+      syncStateOnly(); applyPreviewTextFX();
+    };
+    document.getElementById("btnColorYellow").onclick = ()=>{ state.fontColor="#ffd400"; fontColor.value=state.fontColor; colorVal.textContent=state.fontColor; syncStateOnly(); applyPreviewTextFX(); };
+    document.getElementById("btnColorWhite").onclick = ()=>{ state.fontColor="#ffffff"; fontColor.value=state.fontColor; colorVal.textContent=state.fontColor; syncStateOnly(); applyPreviewTextFX(); };
+
+    // 底色
+    capBgEnable.onchange = (e)=>{ state.captionBgEnabled = (e.target.value === "on"); syncStateOnly(); applyPreviewTextFX(); };
+    capBgColor.oninput = (e)=>{
+      state.captionBgColor = e.target.value;
+      capBgColorVal.textContent = state.captionBgColor.toLowerCase();
+      capBgHex.value = state.captionBgColor;
+      syncStateOnly(); applyPreviewTextFX();
+    };
+    capBgHex.onchange = (e)=>{
+      const v = (e.target.value||"").trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(v)){
+        state.captionBgColor = v;
+        capBgColor.value = v;
+        capBgColorVal.textContent = v.toLowerCase();
+        syncStateOnly(); applyPreviewTextFX();
+      }else{
+        alert("HEX 格式錯誤，請輸入例如 #1f2937");
+        capBgHex.value = state.captionBgColor || "#6b7280";
+      }
+    };
+    capBgOpRange.oninput = (e)=>{
+      state.captionBgOpacity = Number(e.target.value);
+      capBgOpVal.textContent = state.captionBgOpacity.toFixed(2);
+      syncStateOnly(); applyPreviewTextFX();
+    };
+    document.getElementById("btnCapGray").onclick = ()=>{
+      state.captionBgEnabled=true; capBgEnable.value="on";
+      state.captionBgColor="#6b7280"; capBgColor.value=state.captionBgColor; capBgColorVal.textContent=state.captionBgColor; capBgHex.value=state.captionBgColor;
+      syncStateOnly(); applyPreviewTextFX();
+    };
+    document.getElementById("btnCapBlack").onclick = ()=>{
+      state.captionBgEnabled=true; capBgEnable.value="on";
+      state.captionBgColor="#000000"; capBgColor.value=state.captionBgColor; capBgColorVal.textContent=state.captionBgColor; capBgHex.value=state.captionBgColor;
+      syncStateOnly(); applyPreviewTextFX();
+    };
+
+    bgSelect.onchange = (e)=>{ state.outputBg = (e.target.value==="transparent" ? "transparent" : "black"); syncStateOnly(); };
+    posSelect.onchange = (e)=>{ state.position = e.target.value; syncStateOnly(); };
+    padRange.oninput = (e)=>{ state.bottomPaddingVh = Number(e.target.value); padVal.textContent = state.bottomPaddingVh+"vh"; syncStateOnly(); };
+
+    strokeRange.oninput = (e)=>{ state.strokeWidth = Number(e.target.value); strokeVal.textContent = state.strokeWidth+"px"; syncStateOnly(); applyPreviewTextFX(); };
+    strokeColor.oninput = (e)=>{ state.strokeColor = e.target.value; strokeColorVal.textContent = state.strokeColor.toLowerCase(); syncStateOnly(); applyPreviewTextFX(); };
+    document.getElementById("btnStrokeBlack").onclick = ()=>{ state.strokeColor="#000000"; strokeColor.value=state.strokeColor; strokeColorVal.textContent=state.strokeColor; syncStateOnly(); applyPreviewTextFX(); };
+    document.getElementById("btnStrokeNone").onclick = ()=>{ state.strokeWidth=0; strokeRange.value=0; strokeVal.textContent="0px"; syncStateOnly(); applyPreviewTextFX(); };
+
+    function setShadow(){
+      state.shadowOpacity = Number(shOpRange.value);
+      state.shadowBlur = Number(shBlurRange.value);
+      state.shadowOffsetY = Number(shYRange.value);
+      shOpVal.textContent = state.shadowOpacity.toFixed(2);
+      shBlurVal.textContent = state.shadowBlur+"px";
+      shYVal.textContent = state.shadowOffsetY+"px";
+      syncStateOnly(); applyPreviewTextFX();
+    }
+    shOpRange.oninput = setShadow;
+    shBlurRange.oninput = setShadow;
+    shYRange.oninput = setShadow;
+
+    fillSysFonts();
+    sysFontStatus.textContent = hasLocalFontApi() ? "可載入" : "此瀏覽器不支援";
+  }
+
+  function openOutput(){
+    const base = location.href.split("?")[0];
+    const url = base + "?output=1&t=" + Date.now();
+    outputWin = window.open(url, "pp_output_v43", "popup,width=1200,height=800");
+    if(!outputWin){
+      alert("彈出視窗被擋下，請允許彈出視窗後再按一次。");
+      return;
+    }
+    try{ outputWin.name = SNAPSHOT_PREFIX + packSnapshot(); }catch(e){}
+
+    let n = 0;
+    const pump = setInterval(()=>{
+      syncAll();
+      try{ if(outputWin) outputWin.name = SNAPSHOT_PREFIX + packSnapshot(); }catch(e){}
+      n++;
+      if(n>=12) clearInterval(pump);
+    }, 150);
+
+    renderMiddle();
+  }
+
+  function renderAll(){
+    resolveState();
+    renderSetSelect();
+    renderSetSongs();
+    renderMiddle();
+    renderStylePanel();
+    applyPreviewTextFX();
+  }
+
+  setSelect.onchange = (e)=>{
+    state.setlistId = e.target.value;
+    state.songId = null;
+    state.slideIndex = 0;
+    resolveState();
+    renderAll();
+    syncStateOnly();
+  };
+  btnOpenOut.onclick = openOutput;
+
+  setInterval(()=>{
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const clk = document.getElementById("clock");
+    if(clk) clk.textContent = `${hh}:${mm}`;
+  }, 1000);
+
+  window.addEventListener("message", (ev)=>{
+    const d = ev.data || {};
+    if(d.type==="OUTPUT_READY"){ syncAll(); }
+  });
+
+  window.addEventListener("keydown", (e)=>{
+    if(IS_OUTPUT) return;
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : "";
+    if(tag==="INPUT" || tag==="TEXTAREA" || e.isComposing) return;
+
+    const m = (e.code||"").match(/^Digit([1-9])$/);
+    if(!m) return;
+
+    const n = Number(m[1]);
+    const song = getSongById(state.songId);
+    const slides = song?.slides || [];
+    const idx = n - 1;
+    if(idx < slides.length){
+      e.preventDefault();
+      state.slideIndex = idx;
+      resolveState();
+      renderAll();
+      syncStateOnly();
+    }
+  });
+
+  document.getElementById("btnEditLibrary").onclick = ()=>alert("此 v4.3 版本省略歌曲庫/清單編輯 Modal。\n若你要『完整含 Modal 的 v4.3』我可以直接貼整份。");
+  document.getElementById("btnEditSetlists").onclick = ()=>alert("此 v4.3 版本省略歌曲庫/清單編輯 Modal。\n若你要『完整含 Modal 的 v4.3』我可以直接貼整份。");
+
+  renderAll();
+  syncAll();
+}
+
+/** =========================
+ * 7) Entry
+ * ========================= */
+if(IS_OUTPUT){
+  mountOutput();
+} else {
+  mountController();
+}
+</script>
+</body>
+</html>
