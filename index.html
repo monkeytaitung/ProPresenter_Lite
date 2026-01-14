@@ -31,7 +31,7 @@
     .app{
       height: calc(100vh - 20px - var(--safeT) - var(--safeB));
       display:grid;
-      grid-template-columns: 360px 1fr 380px;
+      grid-template-columns: 360px 1fr 390px;
       gap:12px;
       min-height:0;
     }
@@ -79,6 +79,17 @@
       color:#fff;
       outline:none;
     }
+    textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.35);
+      color:#fff;
+      outline:none;
+      resize: vertical;
+      min-height:92px;
+    }
     input[type="range"]{ width:100%; }
 
     button{
@@ -103,6 +114,12 @@
       background: rgba(255,255,255,.06);
       border-color: rgba(255,255,255,.12);
       color: rgba(255,255,255,.85);
+    }
+    button.danger{
+      background: rgba(255,80,80,.12);
+      border-color: rgba(255,80,80,.28);
+      color: #ffb2b2;
+      font-weight:900;
     }
 
     .row{ display:flex; gap:8px; align-items:center; }
@@ -192,6 +209,8 @@
       gap:8px;
       min-height: 140px;
       justify-content:center;
+      position: relative;
+      overflow:hidden;
     }
     .segBtn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.20); }
     .segBtn.active{
@@ -247,33 +266,300 @@
       cursor:pointer;
     }
 
+    /* Modal */
+    .modal{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.58);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 999;
+    }
+    .modal.show{ display:flex; }
+    .modalCard{
+      width:min(1100px, 100%);
+      max-height: calc(100vh - 28px);
+      overflow:hidden;
+      background: rgba(15,17,22,.96);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+    .modalHead{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+    }
+    .modalHead .h2{
+      font-weight:900;
+      letter-spacing:.4px;
+      font-size:14px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .modalBody{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap: 12px;
+      padding:12px;
+      overflow:auto;
+      min-height:0;
+    }
+    .modalFoot{
+      padding:12px 14px;
+      border-top:1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(10,12,18,.45);
+    }
+    .note{
+      font-size:12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .miniBtn{
+      padding:7px 10px;
+      border-radius: 10px;
+      font-size:12px;
+    }
+    .slideItem{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.25);
+      border-radius: 12px;
+      padding:10px;
+      margin-bottom:10px;
+    }
+    .slideTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .slideTop input{
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      font-size: 13px;
+      width: 100%;
+    }
+    .slideBtns{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      margin-top: 6px;
+    }
+
+    .dragItem{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      margin-bottom:10px;
+    }
+    .dragHandle{
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      display:flex; align-items:center; justify-content:center;
+      cursor: grab;
+      user-select:none;
+      font-weight:900;
+      color: rgba(255,255,255,.80);
+    }
+
     @media (max-width: 1100px){
       .app{ grid-template-columns: 1fr; }
       #middle .body{ max-width: none; }
+      .modalBody{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 <div class="app" id="app"></div>
 
+<!-- Library Modal -->
+<div class="modal" id="modalLibrary">
+  <div class="modalCard">
+    <div class="modalHead">
+      <div class="h2" id="libTitle">歌曲庫</div>
+      <div class="row wrap" style="justify-content:flex-end;">
+        <button class="ghost miniBtn" id="btnLibExport">匯出 JSON</button>
+        <button class="ghost miniBtn" id="btnLibImport">匯入 JSON</button>
+        <input type="file" id="libImportFile" accept="application/json" style="display:none;" />
+        <button class="danger miniBtn" id="btnLibReset">重置示範資料</button>
+        <button class="miniBtn" id="btnLibClose">關閉</button>
+      </div>
+    </div>
+
+    <div class="modalBody">
+      <div class="panel" style="border-radius:14px;">
+        <header>
+          <div class="h">歌曲清單</div>
+          <div class="mini" id="libCount">—</div>
+        </header>
+        <div class="body">
+          <div class="field">
+            <label>搜尋</label>
+            <input id="libSearch" type="search" placeholder="輸入歌名關鍵字…" />
+          </div>
+          <div class="row wrap" style="margin-bottom:10px;">
+            <button class="primary" id="btnNewSong">＋新增歌曲</button>
+            <button class="ghost" id="btnDupSong">複製</button>
+            <button class="danger" id="btnDelSong">刪除</button>
+          </div>
+          <div id="libSongList" class="list"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="border-radius:14px;">
+        <header>
+          <div class="h" id="editHeader">編輯歌曲</div>
+          <div class="mini">段落＝一張提詞畫面</div>
+        </header>
+        <div class="body">
+          <div class="field">
+            <label>歌曲名稱</label>
+            <input id="editSongName" type="text" placeholder="例如：神同在" />
+          </div>
+
+          <div class="row wrap" style="margin-bottom:10px;">
+            <button class="primary" id="btnAddSlide">＋新增段落</button>
+          </div>
+
+          <div id="slidesEditor"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <div class="note">提示：在右側修改後，按「儲存」才會寫入資料庫。</div>
+      <div class="row wrap" style="justify-content:flex-end;">
+        <button id="btnLibCancel">取消</button>
+        <button class="primary" id="btnLibSave">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Setlist Modal -->
+<div class="modal" id="modalSetlists">
+  <div class="modalCard">
+    <div class="modalHead">
+      <div class="h2">播放清單（Setlist）</div>
+      <div class="row wrap" style="justify-content:flex-end;">
+        <button class="ghost miniBtn" id="btnSetExport">匯出 JSON</button>
+        <button class="ghost miniBtn" id="btnSetImport">匯入 JSON</button>
+        <input type="file" id="setImportFile" accept="application/json" style="display:none;" />
+        <button class="miniBtn" id="btnSetClose">關閉</button>
+      </div>
+    </div>
+
+    <div class="modalBody">
+      <div class="panel" style="border-radius:14px;">
+        <header>
+          <div class="h">清單列表</div>
+          <div class="mini" id="setCount">—</div>
+        </header>
+        <div class="body">
+          <div class="row wrap" style="margin-bottom:10px;">
+            <button class="primary" id="btnNewSet">＋新增清單</button>
+            <button class="danger" id="btnDelSet">刪除清單</button>
+          </div>
+          <div class="field">
+            <label>清單名稱</label>
+            <input id="editSetName" type="text" placeholder="例如：主日" />
+          </div>
+          <div id="setListBox" class="list"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="border-radius:14px;">
+        <header>
+          <div class="h">清單內容（拖曳排序）</div>
+          <div class="mini">可重複使用同一首歌</div>
+        </header>
+        <div class="body">
+          <div class="field">
+            <label>加入歌曲到此清單</label>
+            <select id="addSongSelect"></select>
+          </div>
+          <div class="row wrap" style="margin-bottom:10px;">
+            <button class="primary" id="btnAddToSet">加入</button>
+            <button class="danger" id="btnRemoveFromSet">移除選取</button>
+          </div>
+          <div id="setItemsBox"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalFoot">
+      <div class="note">提示：拖曳手把排序；完成後按「儲存」。</div>
+      <div class="row wrap" style="justify-content:flex-end;">
+        <button id="btnSetCancel">取消</button>
+        <button class="primary" id="btnSetSave">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /** =========================
  * 0) Demo Data
  * ========================= */
 const DEFAULT_SONGS = [
-  { id:"s1", name:"神同在（示範）", slides:[ { title:"主歌", singer:"主唱", text:"祢同在 祢同在\n我心不再搖動" }, { title:"副歌", singer:"合唱", text:"神同在 充滿這裡\n我敬拜 直到永遠" } ] },
-  { id:"s2", name:"不變的應許（示範）", slides:[ { title:"主歌", singer:"主唱", text:"祢的應許 永不改變\n我緊緊抓住不放" }, { title:"副歌", singer:"合唱", text:"祢信實 直到永遠\n我必看見祢作為" } ] },
-  { id:"s3", name:"盼望之路（示範）", slides:[ { title:"主歌", singer:"主唱", text:"黑夜雖長 祢仍同行\n盼望之光不熄滅" }, { title:"副歌", singer:"合唱", text:"我走在 盼望之路\n因祢同在 我不懼怕" } ] },
+  {
+    id:"s1",
+    name:"神同在（示範）",
+    slides:[
+      { title:"主歌", singer:"主唱", text:"祢同在 祢同在\n我心不再搖動" },
+      { title:"副歌", singer:"合唱", text:"神同在 充滿這裡\n我敬拜 直到永遠" }
+    ]
+  },
+  {
+    id:"s2",
+    name:"不變的應許（示範）",
+    slides:[
+      { title:"主歌", singer:"主唱", text:"祢的應許 永不改變\n我緊緊抓住不放" },
+      { title:"副歌", singer:"合唱", text:"祢信實 直到永遠\n我必看見祢作為" }
+    ]
+  },
+  {
+    id:"s3",
+    name:"盼望之路（示範）",
+    slides:[
+      { title:"主歌", singer:"主唱", text:"黑夜雖長 祢仍同行\n盼望之光不熄滅" },
+      { title:"副歌", singer:"合唱", text:"我走在 盼望之路\n因祢同在 我不懼怕" }
+    ]
+  }
 ];
 
 const DEFAULT_SETLISTS = [
   { id:"set1", name:"主日", items:[{songId:"s1"},{songId:"s2"},{songId:"s3"}] },
+  { id:"set2", name:"禱告會", items:[{songId:"s1"},{songId:"s2"}] }
 ];
 
-const STORAGE_KEY_SONGS = "pp_lite_songs_v43";
-const STORAGE_KEY_SETLISTS = "pp_lite_setlists_v43";
-const STORAGE_KEY_STATE = "pp_lite_state_v43";
-const SNAPSHOT_PREFIX = "PP_LITE_SNAPSHOT_V43:";
+const STORAGE_KEY_SONGS = "pp_lite_songs_v43_full";
+const STORAGE_KEY_SETLISTS = "pp_lite_setlists_v43_full";
+const STORAGE_KEY_STATE = "pp_lite_state_v43_full";
+const SNAPSHOT_PREFIX = "PP_LITE_SNAPSHOT_V43_FULL:";
 
 /** =========================
  * 1) Mode
@@ -282,10 +568,30 @@ const params = new URLSearchParams(location.search);
 const IS_OUTPUT = params.get("output") === "1";
 
 let bc = null;
-try { bc = new BroadcastChannel("pp_lite_channel_v43"); } catch(e) { bc = null; }
+try { bc = new BroadcastChannel("pp_lite_channel_v43_full"); } catch(e) { bc = null; }
 
 /** =========================
- * 2) Data
+ * 2) Helpers
+ * ========================= */
+function genId(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + Date.now().toString(16); }
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[s]));
+}
+function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+function hexToRgba(hex, a){
+  const h = String(hex||"").replace("#","").trim();
+  if(!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(0,0,0,${clamp(a,0,1)})`;
+  const r = parseInt(h.slice(0,2),16);
+  const g = parseInt(h.slice(2,4),16);
+  const b = parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g},${b},${clamp(a,0,1)})`;
+}
+
+/** =========================
+ * 3) Data
  * ========================= */
 let SONGS = loadSongs();
 let SETLISTS = loadSetlists();
@@ -336,8 +642,11 @@ function loadSetlists(){
 }
 function saveSetlists(){ localStorage.setItem(STORAGE_KEY_SETLISTS, JSON.stringify(SETLISTS)); }
 
+function getSongById(id){ return SONGS.find(s=>s.id===id) || null; }
+function getSetlistById(id){ return SETLISTS.find(x=>x.id===id) || SETLISTS[0] || null; }
+
 /** =========================
- * 3) State
+ * 4) State
  * ========================= */
 const DEFAULT_STATE = {
   setlistId: SETLISTS[0]?.id || "set1",
@@ -360,7 +669,7 @@ const DEFAULT_STATE = {
 
   outputBg: "black", // black | transparent
 
-  // ✅ 字幕底色（可關/可調顏色/透明度）— v4.3：全寬底色（左右寬度=視窗）
+  // 字幕底色（全寬）
   captionBgEnabled: true,
   captionBgColor: "#6b7280",
   captionBgOpacity: 0.55,
@@ -393,18 +702,6 @@ function loadState(){
 }
 function saveState(){ localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(state)); }
 
-function genId(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + Date.now().toString(16); }
-function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[s]));
-}
-function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-
-function getSongById(id){ return SONGS.find(s=>s.id===id) || null; }
-function getSetlistById(id){ return SETLISTS.find(x=>x.id===id) || SETLISTS[0] || null; }
-
 function resolveState(){
   if(!SETLISTS.some(x=>x.id===state.setlistId)){
     state.setlistId = SETLISTS[0]?.id || "set1";
@@ -429,22 +726,13 @@ function resolveState(){
   saveState();
 }
 
-function hexToRgba(hex, a){
-  const h = String(hex||"").replace("#","").trim();
-  if(!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(0,0,0,${clamp(a,0,1)})`;
-  const r = parseInt(h.slice(0,2),16);
-  const g = parseInt(h.slice(2,4),16);
-  const b = parseInt(h.slice(4,6),16);
-  return `rgba(${r},${g},${b},${clamp(a,0,1)})`;
-}
-
 /** =========================
- * 4) Sync
+ * 5) Sync
  * ========================= */
 let outputWin = null;
 function broadcast(payload){
   if(bc){ try{ bc.postMessage(payload); }catch(e){} }
-  try{ localStorage.setItem("pp_lite_last_sync_v43", JSON.stringify({payload, t:Date.now()})); }catch(e){}
+  try{ localStorage.setItem("pp_lite_last_sync_v43_full", JSON.stringify({payload, t:Date.now()})); }catch(e){}
 }
 function postToOutput(payload){
   if(outputWin && !outputWin.closed){
@@ -466,13 +754,12 @@ function syncStateOnly(){
 }
 
 /** =========================
- * 5) Output window
+ * 6) Output
  * ========================= */
 function mountOutput(){
   const app = document.getElementById("app");
   if(app) app.style.display="none";
 
-  // snapshot first
   try{
     if(typeof window.name === "string" && window.name.startsWith(SNAPSHOT_PREFIX)){
       const raw = window.name.slice(SNAPSHOT_PREFIX.length);
@@ -491,7 +778,7 @@ function mountOutput(){
     document.body.style.background = (state.outputBg==="transparent") ? "transparent" : "#000";
   }
 
-  // Layer: band (full width) + text (centered)
+  // full-width band
   const band = document.createElement("div");
   band.style.position = "fixed";
   band.style.left = "0";
@@ -501,7 +788,6 @@ function mountOutput(){
   band.style.zIndex = "1";
   band.style.display = "none";
   band.style.pointerEvents = "none";
-  band.style.backdropFilter = "none";
   document.body.appendChild(band);
 
   const wrap = document.createElement("div");
@@ -561,9 +847,8 @@ function mountOutput(){
 
   function layoutBand(){
     if(!state.captionBgEnabled) return;
-    // 依文字實際位置，讓底色「全寬」貼住文字區域
     const rect = txt.getBoundingClientRect();
-    const padY = Math.max(14, Math.round((Number(state.fontSize)||80) * 0.18)); // 視覺舒服
+    const padY = Math.max(14, Math.round((Number(state.fontSize)||80) * 0.18));
     const top = Math.max(0, Math.floor(rect.top - padY));
     const h = Math.min(window.innerHeight - top, Math.ceil(rect.height + padY*2));
     band.style.top = top + "px";
@@ -613,7 +898,7 @@ function mountOutput(){
   }
 
   try{
-    const last = localStorage.getItem("pp_lite_last_sync_v43");
+    const last = localStorage.getItem("pp_lite_last_sync_v43_full");
     if(last){
       const {payload} = JSON.parse(last);
       if(payload?.type==="SYNC"){
@@ -629,28 +914,34 @@ function mountOutput(){
 }
 
 /** =========================
- * 6) Controller
+ * 7) Controller
  * ========================= */
 let SYSTEM_FONTS = [];
-function hasLocalFontApi(){
-  return typeof window.queryLocalFonts === "function";
-}
+function hasLocalFontApi(){ return typeof window.queryLocalFonts === "function"; }
 async function loadSystemFonts(){
-  if(!hasLocalFontApi()){
-    throw new Error("此瀏覽器不支援 Local Font Access API。請用 Chrome/Edge，或改用「自訂字體名稱」。");
-  }
+  if(!hasLocalFontApi()) throw new Error("此瀏覽器不支援 Local Font Access API。請用 Chrome/Edge。");
   const fonts = await window.queryLocalFonts();
   const map = new Map();
   for(const f of fonts){
     const family = (f.family || f.fullName || "").trim();
     if(!family) continue;
-    if(!map.has(family)){
-      map.set(family, {family, fullName: (f.fullName||family)});
-    }
+    if(!map.has(family)) map.set(family, {family});
   }
   SYSTEM_FONTS = Array.from(map.values()).sort((a,b)=>a.family.localeCompare(b.family, "zh-Hant"));
   return SYSTEM_FONTS;
 }
+
+/** ===== Modal State ===== */
+let modalOpen = null; // "library" | "setlists" | null
+
+// Library draft
+let libSelectedSongId = null;
+let libDraftSong = null;
+
+// Setlist draft
+let setSelectedId = null;
+let setDraft = null;         // current editing setlist object
+let setSelectedItemIndex = -1;
 
 function mountController(){
   resolveState();
@@ -667,7 +958,7 @@ function mountController(){
         <div class="list">
           <div class="card">
             <div class="field">
-              <label>播放清單（Setlist）<span class="mini" id="setCount"></span></label>
+              <label>播放清單（Setlist）<span class="mini" id="setCountTop"></span></label>
               <select id="setSelect"></select>
             </div>
             <div class="row wrap">
@@ -693,7 +984,7 @@ function mountController(){
               <div style="font-weight:900;">目前歌｜段落預覽</div>
               <div class="mini" id="songMeta">—</div>
             </div>
-            <div class="smallSegWrap">
+            <div class="smallSegWrap" id="previewWrap">
               <div class="smallSeg" id="slidePreview">—</div>
             </div>
           </div>
@@ -726,17 +1017,21 @@ function mountController(){
   `;
 
   const setSelect = document.getElementById("setSelect");
-  const setCount = document.getElementById("setCount");
+  const setCountTop = document.getElementById("setCountTop");
   const setSongList = document.getElementById("setSongList");
   const leftMeta = document.getElementById("leftMeta");
   const songMeta = document.getElementById("songMeta");
   const slidePreview = document.getElementById("slidePreview");
+  const previewWrap = document.getElementById("previewWrap");
 
   const midTitle = document.getElementById("midTitle");
   const outStatus = document.getElementById("outStatus");
   const segGrid = document.getElementById("segGrid");
 
   const btnOpenOut = document.getElementById("btnOpenOut");
+  const btnEditLibrary = document.getElementById("btnEditLibrary");
+  const btnEditSetlists = document.getElementById("btnEditSetlists");
+
   const stylePanel = document.getElementById("stylePanel");
 
   function applyPreviewTextFX(){
@@ -751,14 +1046,12 @@ function mountController(){
     const oy = clamp(Number(state.shadowOffsetY ?? 3),0,40);
     slidePreview.style.textShadow = `0 ${oy}px ${blur}px rgba(0,0,0,${op})`;
 
-    // 預覽底色（在左側預覽區塊內全寬）
-    const wrap = slidePreview.parentElement.parentElement; // smallSegWrap
     if(state.captionBgEnabled){
-      wrap.style.background = hexToRgba(state.captionBgColor || "#6b7280", clamp(Number(state.captionBgOpacity??0.55),0,1));
-      wrap.style.border = "1px solid rgba(255,255,255,.10)";
+      previewWrap.style.background = hexToRgba(state.captionBgColor || "#6b7280", clamp(Number(state.captionBgOpacity??0.55),0,1));
+      previewWrap.style.border = "1px solid rgba(255,255,255,.10)";
     }else{
-      wrap.style.background = "rgba(0,0,0,.18)";
-      wrap.style.border = "1px solid rgba(255,255,255,.08)";
+      previewWrap.style.background = "rgba(0,0,0,.18)";
+      previewWrap.style.border = "1px solid rgba(255,255,255,.08)";
     }
   }
 
@@ -771,7 +1064,7 @@ function mountController(){
       setSelect.appendChild(opt);
     });
     setSelect.value = state.setlistId;
-    setCount.textContent = `（${SETLISTS.length}）`;
+    setCountTop.textContent = `（${SETLISTS.length}）`;
   }
 
   function getSetSongs(set){
@@ -789,7 +1082,7 @@ function mountController(){
     if(songs.length===0){
       const div = document.createElement("div");
       div.className="card";
-      div.innerHTML = `<div class="mini">此清單目前沒有歌曲。</div>`;
+      div.innerHTML = `<div class="mini">此清單目前沒有歌曲。按「編輯清單」加入歌曲。</div>`;
       setSongList.appendChild(div);
       return;
     }
@@ -832,7 +1125,7 @@ function mountController(){
     if(slides.length===0){
       const empty = document.createElement("div");
       empty.className="card";
-      empty.innerHTML = `<div class="mini">此歌曲沒有段落。</div>`;
+      empty.innerHTML = `<div class="mini">此歌曲沒有段落。可到「歌曲庫」新增段落。</div>`;
       segGrid.appendChild(empty);
       return;
     }
@@ -1169,7 +1462,7 @@ function mountController(){
   function openOutput(){
     const base = location.href.split("?")[0];
     const url = base + "?output=1&t=" + Date.now();
-    outputWin = window.open(url, "pp_output_v43", "popup,width=1200,height=800");
+    outputWin = window.open(url, "pp_output_v43_full", "popup,width=1200,height=800");
     if(!outputWin){
       alert("彈出視窗被擋下，請允許彈出視窗後再按一次。");
       return;
@@ -1196,6 +1489,531 @@ function mountController(){
     applyPreviewTextFX();
   }
 
+  /** =========================
+   * 8) Library Modal (Songs)
+   * ========================= */
+  const modalLibrary = document.getElementById("modalLibrary");
+  const btnLibClose = document.getElementById("btnLibClose");
+  const btnLibCancel = document.getElementById("btnLibCancel");
+  const btnLibSave = document.getElementById("btnLibSave");
+  const btnLibReset = document.getElementById("btnLibReset");
+  const btnLibExport = document.getElementById("btnLibExport");
+  const btnLibImport = document.getElementById("btnLibImport");
+  const libImportFile = document.getElementById("libImportFile");
+
+  const libSearch = document.getElementById("libSearch");
+  const libSongList = document.getElementById("libSongList");
+  const libCount = document.getElementById("libCount");
+
+  const btnNewSong = document.getElementById("btnNewSong");
+  const btnDupSong = document.getElementById("btnDupSong");
+  const btnDelSong = document.getElementById("btnDelSong");
+
+  const editSongName = document.getElementById("editSongName");
+  const slidesEditor = document.getElementById("slidesEditor");
+  const btnAddSlide = document.getElementById("btnAddSlide");
+  const editHeader = document.getElementById("editHeader");
+
+  function openLibraryModal(){
+    modalOpen = "library";
+    modalLibrary.classList.add("show");
+    // pick current song by default
+    libSelectedSongId = state.songId || SONGS[0]?.id || null;
+    libDraftSong = libSelectedSongId ? deepClone(getSongById(libSelectedSongId)) : null;
+    renderLibrary();
+  }
+  function closeLibraryModal(keep){
+    if(keep){
+      if(!libDraftSong){ alert("沒有可儲存的歌曲"); return; }
+      libDraftSong.name = (editSongName.value||"").trim() || "未命名歌曲";
+
+      const idx = SONGS.findIndex(s=>s.id===libDraftSong.id);
+      if(idx>=0) SONGS[idx] = libDraftSong;
+      else SONGS.unshift(libDraftSong);
+
+      saveSongs();
+      syncAll();
+
+      // 若此歌在任何 setlist 內被引用，名字更新即可；slides 也更新
+      renderAll();
+    }
+    modalOpen = null;
+    modalLibrary.classList.remove("show");
+  }
+
+  function renderLibrary(){
+    const q = (libSearch.value||"").trim().toLowerCase();
+    const filtered = SONGS.filter(s => !q || s.name.toLowerCase().includes(q));
+    libCount.textContent = `${filtered.length} / ${SONGS.length}`;
+
+    libSongList.innerHTML = "";
+    filtered.forEach(s=>{
+      const div = document.createElement("div");
+      div.className = "songItem" + (s.id===libSelectedSongId ? " active" : "");
+      div.innerHTML = `
+        <div class="songTop">
+          <div class="songName">${escapeHtml(s.name)}</div>
+          <span class="pill">${s.slides?.length||0} 段</span>
+        </div>
+        <div class="sub">${escapeHtml((s.slides?.[0]?.text||"")).replaceAll("\n"," / ")}</div>
+      `;
+      div.onclick = ()=>{
+        if(libDraftSong && libDraftSong.id === libSelectedSongId){
+          // allow switching without auto-save
+          if(hasUnsavedLibraryChanges()){
+            if(!confirm("你有未儲存的更改，確定要切換歌曲？")) return;
+          }
+        }
+        libSelectedSongId = s.id;
+        libDraftSong = deepClone(getSongById(s.id));
+        renderLibraryEditor();
+        renderLibrary();
+      };
+      libSongList.appendChild(div);
+    });
+
+    renderLibraryEditor();
+  }
+
+  function hasUnsavedLibraryChanges(){
+    if(!libDraftSong) return false;
+    const orig = getSongById(libDraftSong.id);
+    if(!orig) return true;
+    // shallow compare json
+    try{
+      return JSON.stringify(orig) !== JSON.stringify({...libDraftSong, name:(editSongName.value||libDraftSong.name)});
+    }catch(e){
+      return true;
+    }
+  }
+
+  function renderLibraryEditor(){
+    if(!libDraftSong){
+      editHeader.textContent = "編輯歌曲";
+      editSongName.value = "";
+      slidesEditor.innerHTML = `<div class="note">尚未選擇歌曲</div>`;
+      return;
+    }
+
+    editHeader.textContent = `編輯：${libDraftSong.name}`;
+    editSongName.value = libDraftSong.name || "";
+
+    slidesEditor.innerHTML = "";
+    if(!Array.isArray(libDraftSong.slides)) libDraftSong.slides = [];
+
+    libDraftSong.slides.forEach((sl, idx)=>{
+      const div = document.createElement("div");
+      div.className = "slideItem";
+      div.innerHTML = `
+        <div class="slideTop">
+          <div class="row" style="gap:8px; flex:1;">
+            <input class="inpTitle" data-idx="${idx}" placeholder="段落名稱" value="${escapeHtml(sl.title)}" />
+            <input class="inpSinger" data-idx="${idx}" placeholder="演唱者" value="${escapeHtml(sl.singer)}" />
+          </div>
+          <button class="danger miniBtn" data-idx="${idx}" data-act="del">✕</button>
+        </div>
+        <textarea class="inpText" data-idx="${idx}">${escapeHtml(sl.text)}</textarea>
+        <div class="slideBtns">
+          <button class="ghost miniBtn" data-idx="${idx}" data-act="up" ${idx===0?"disabled":""}>↑</button>
+          <button class="ghost miniBtn" data-idx="${idx}" data-act="down" ${idx===libDraftSong.slides.length-1?"disabled":""}>↓</button>
+        </div>
+      `;
+      slidesEditor.appendChild(div);
+    });
+
+    slidesEditor.querySelectorAll(".inpTitle").forEach(el=>{
+      el.oninput = (e)=> libDraftSong.slides[Number(e.target.dataset.idx)].title = e.target.value;
+    });
+    slidesEditor.querySelectorAll(".inpSinger").forEach(el=>{
+      el.oninput = (e)=> libDraftSong.slides[Number(e.target.dataset.idx)].singer = e.target.value;
+    });
+    slidesEditor.querySelectorAll(".inpText").forEach(el=>{
+      el.oninput = (e)=> libDraftSong.slides[Number(e.target.dataset.idx)].text = e.target.value;
+    });
+
+    slidesEditor.querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.onclick = (e)=>{
+        const act = e.target.dataset.act;
+        const i = Number(e.target.dataset.idx);
+        if(act==="del"){
+          if(confirm("確定刪除此段落？")){
+            libDraftSong.slides.splice(i, 1);
+            renderLibraryEditor();
+          }
+        }else if(act==="up" && i>0){
+          [libDraftSong.slides[i-1], libDraftSong.slides[i]] = [libDraftSong.slides[i], libDraftSong.slides[i-1]];
+          renderLibraryEditor();
+        }else if(act==="down" && i<libDraftSong.slides.length-1){
+          [libDraftSong.slides[i+1], libDraftSong.slides[i]] = [libDraftSong.slides[i], libDraftSong.slides[i+1]];
+          renderLibraryEditor();
+        }
+      };
+    });
+  }
+
+  btnAddSlide.onclick = ()=>{
+    if(!libDraftSong) return;
+    libDraftSong.slides.push({ title:`段落 ${libDraftSong.slides.length+1}`, singer:"主唱", text:"" });
+    renderLibraryEditor();
+    setTimeout(()=> slidesEditor.lastElementChild?.scrollIntoView({behavior:"smooth"}), 50);
+  };
+
+  btnNewSong.onclick = ()=>{
+    if(libDraftSong && hasUnsavedLibraryChanges()){
+      if(!confirm("你有未儲存的更改，仍要新增歌曲？")) return;
+    }
+    const s = { id: genId("s"), name:"新歌曲", slides:[{ title:"段落 1", singer:"主唱", text:"（在此輸入歌詞）" }] };
+    libSelectedSongId = s.id;
+    libDraftSong = deepClone(s);
+    libSearch.value = "";
+    renderLibrary();
+  };
+
+  btnDupSong.onclick = ()=>{
+    if(!libDraftSong) return;
+    const copy = deepClone(libDraftSong);
+    copy.id = genId("s");
+    copy.name = (copy.name || "未命名") + "（複製）";
+    libSelectedSongId = copy.id;
+    libDraftSong = copy;
+    renderLibrary();
+  };
+
+  btnDelSong.onclick = ()=>{
+    if(!libDraftSong) return;
+    if(!confirm("確定要刪除這首歌曲？（若清單有用到，會變成缺歌）")) return;
+
+    const delId = libDraftSong.id;
+    SONGS = SONGS.filter(s=>s.id!==delId);
+    if(SONGS.length===0) SONGS = deepClone(DEFAULT_SONGS);
+
+    // 移除所有 setlist 內的引用
+    SETLISTS = SETLISTS.map(set=>({
+      ...set,
+      items: (set.items||[]).filter(it=>it.songId!==delId)
+    }));
+    if(SETLISTS.length===0) SETLISTS = deepClone(DEFAULT_SETLISTS);
+
+    saveSongs(); saveSetlists();
+    state.songId = null;
+    resolveState();
+    syncAll();
+    renderAll();
+
+    libSelectedSongId = state.songId;
+    libDraftSong = deepClone(getSongById(libSelectedSongId));
+    renderLibrary();
+  };
+
+  libSearch.oninput = ()=> renderLibrary();
+
+  btnLibClose.onclick = ()=> closeLibraryModal(false);
+  btnLibCancel.onclick = ()=> closeLibraryModal(false);
+  btnLibSave.onclick = ()=> closeLibraryModal(true);
+
+  btnLibReset.onclick = ()=>{
+    if(!confirm("這將清除所有歌曲/清單並還原示範資料，確定？")) return;
+    localStorage.removeItem(STORAGE_KEY_SONGS);
+    localStorage.removeItem(STORAGE_KEY_SETLISTS);
+    localStorage.removeItem(STORAGE_KEY_STATE);
+    location.reload();
+  };
+
+  btnLibExport.onclick = ()=>{
+    const data = { songs: SONGS, setlists: SETLISTS };
+    const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+    const a = document.createElement("a");
+    a.href = dataStr;
+    a.download = "pp_lite_v43_data.json";
+    a.click();
+  };
+  btnLibImport.onclick = ()=> libImportFile.click();
+  libImportFile.onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt)=>{
+      try{
+        const json = JSON.parse(evt.target.result);
+        if(json && Array.isArray(json.songs) && Array.isArray(json.setlists)){
+          if(confirm("匯入會覆蓋目前所有資料，確定？")){
+            SONGS = json.songs;
+            SETLISTS = json.setlists;
+            saveSongs(); saveSetlists();
+            state.songId = null;
+            resolveState();
+            syncAll();
+            renderAll();
+            alert("匯入成功！");
+          }
+        }else{
+          alert("格式錯誤：需要 {songs:[], setlists:[]}");
+        }
+      }catch(err){
+        alert("讀取失敗");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  /** =========================
+   * 9) Setlists Modal
+   * ========================= */
+  const modalSetlists = document.getElementById("modalSetlists");
+  const btnSetClose = document.getElementById("btnSetClose");
+  const btnSetCancel = document.getElementById("btnSetCancel");
+  const btnSetSave = document.getElementById("btnSetSave");
+  const btnNewSet = document.getElementById("btnNewSet");
+  const btnDelSet = document.getElementById("btnDelSet");
+  const editSetName = document.getElementById("editSetName");
+  const setListBox = document.getElementById("setListBox");
+  const setItemsBox = document.getElementById("setItemsBox");
+  const addSongSelect = document.getElementById("addSongSelect");
+  const btnAddToSet = document.getElementById("btnAddToSet");
+  const btnRemoveFromSet = document.getElementById("btnRemoveFromSet");
+  const setCount = document.getElementById("setCount");
+
+  const btnSetExport = document.getElementById("btnSetExport");
+  const btnSetImport = document.getElementById("btnSetImport");
+  const setImportFile = document.getElementById("setImportFile");
+
+  function openSetlistsModal(){
+    modalOpen = "setlists";
+    modalSetlists.classList.add("show");
+    setSelectedId = state.setlistId || SETLISTS[0]?.id || null;
+    setDraft = deepClone(getSetlistById(setSelectedId));
+    setSelectedItemIndex = -1;
+    renderSetlistsModal();
+  }
+  function closeSetlistsModal(keep){
+    if(keep){
+      if(!setDraft){ alert("沒有可儲存的清單"); return; }
+      setDraft.name = (editSetName.value||"").trim() || "未命名清單";
+
+      const idx = SETLISTS.findIndex(s=>s.id===setDraft.id);
+      if(idx>=0) SETLISTS[idx] = setDraft;
+      else SETLISTS.unshift(setDraft);
+
+      saveSetlists();
+      // ensure state uses existing setlist
+      state.setlistId = setDraft.id;
+      state.songId = null;
+      state.slideIndex = 0;
+      resolveState();
+      syncAll();
+      renderAll();
+    }
+    modalOpen = null;
+    modalSetlists.classList.remove("show");
+  }
+
+  function renderSetlistsModal(){
+    setCount.textContent = `${SETLISTS.length} 個`;
+
+    // left: setlists
+    setListBox.innerHTML = "";
+    SETLISTS.forEach(s=>{
+      const div = document.createElement("div");
+      div.className = "songItem" + (s.id===setSelectedId ? " active" : "");
+      div.innerHTML = `
+        <div class="songTop">
+          <div class="songName">${escapeHtml(s.name)}</div>
+          <span class="pill">${(s.items||[]).length} 首</span>
+        </div>
+        <div class="sub">${escapeHtml((s.items||[]).slice(0,5).map(it=>getSongById(it.songId)?.name||"（缺歌）").join("、"))}</div>
+      `;
+      div.onclick = ()=>{
+        if(setDraft && hasUnsavedSetChanges()){
+          if(!confirm("你有未儲存的更改，確定要切換清單？")) return;
+        }
+        setSelectedId = s.id;
+        setDraft = deepClone(getSetlistById(setSelectedId));
+        setSelectedItemIndex = -1;
+        renderSetlistsModal();
+      };
+      setListBox.appendChild(div);
+    });
+
+    // right: editor
+    if(!setDraft){
+      editSetName.value = "";
+      setItemsBox.innerHTML = `<div class="note">尚未選擇清單</div>`;
+      return;
+    }
+    editSetName.value = setDraft.name || "";
+
+    // addSongSelect
+    addSongSelect.innerHTML = SONGS.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("");
+    if(!SONGS.length) addSongSelect.innerHTML = `<option value="">（沒有歌曲）</option>`;
+
+    // items list
+    renderSetItems();
+  }
+
+  function hasUnsavedSetChanges(){
+    if(!setDraft) return false;
+    const orig = getSetlistById(setDraft.id);
+    if(!orig) return true;
+    try{
+      const current = {...setDraft, name:(editSetName.value||setDraft.name)};
+      return JSON.stringify(orig) !== JSON.stringify(current);
+    }catch(e){
+      return true;
+    }
+  }
+
+  function renderSetItems(){
+    setItemsBox.innerHTML = "";
+    const items = setDraft.items || [];
+    if(items.length===0){
+      setItemsBox.innerHTML = `<div class="note">此清單沒有歌曲，從上方下拉選歌加入。</div>`;
+      return;
+    }
+
+    items.forEach((it, idx)=>{
+      const song = getSongById(it.songId);
+      const div = document.createElement("div");
+      div.className = "dragItem" + (idx===setSelectedItemIndex ? " active" : "");
+      div.draggable = true;
+      div.dataset.idx = String(idx);
+      div.innerHTML = `
+        <div class="dragHandle" title="拖曳排序">≡</div>
+        <div class="grow" style="min-width:0;">
+          <div style="font-weight:900; overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${escapeHtml(song?.name || "（缺歌）")}</div>
+          <div class="mini">#${idx+1}</div>
+        </div>
+        <button class="ghost miniBtn" data-act="pick" data-idx="${idx}">選取</button>
+      `;
+      div.querySelector('button[data-act="pick"]').onclick = ()=>{
+        setSelectedItemIndex = idx;
+        renderSetItems();
+      };
+
+      // drag events
+      div.addEventListener("dragstart", (e)=>{
+        e.dataTransfer.setData("text/plain", String(idx));
+        e.dataTransfer.effectAllowed = "move";
+      });
+      div.addEventListener("dragover", (e)=>{
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        div.style.borderColor = "rgba(255,212,0,.55)";
+      });
+      div.addEventListener("dragleave", ()=>{
+        div.style.borderColor = "rgba(255,255,255,.10)";
+      });
+      div.addEventListener("drop", (e)=>{
+        e.preventDefault();
+        div.style.borderColor = "rgba(255,255,255,.10)";
+        const from = Number(e.dataTransfer.getData("text/plain"));
+        const to = idx;
+        if(Number.isNaN(from) || from===to) return;
+        const arr = setDraft.items;
+        const [moved] = arr.splice(from, 1);
+        arr.splice(to, 0, moved);
+        setSelectedItemIndex = to;
+        renderSetItems();
+      });
+
+      setItemsBox.appendChild(div);
+    });
+  }
+
+  btnNewSet.onclick = ()=>{
+    if(setDraft && hasUnsavedSetChanges()){
+      if(!confirm("你有未儲存的更改，仍要新增清單？")) return;
+    }
+    const s = { id: genId("set"), name:"新清單", items:[] };
+    setSelectedId = s.id;
+    setDraft = deepClone(s);
+    setSelectedItemIndex = -1;
+    renderSetlistsModal();
+  };
+
+  btnDelSet.onclick = ()=>{
+    if(!setDraft) return;
+    if(!confirm("確定要刪除這個清單？")) return;
+    const delId = setDraft.id;
+    SETLISTS = SETLISTS.filter(s=>s.id!==delId);
+    if(SETLISTS.length===0) SETLISTS = deepClone(DEFAULT_SETLISTS);
+    saveSetlists();
+
+    state.setlistId = SETLISTS[0].id;
+    state.songId = null;
+    state.slideIndex = 0;
+    resolveState();
+    syncAll();
+    renderAll();
+
+    setSelectedId = state.setlistId;
+    setDraft = deepClone(getSetlistById(setSelectedId));
+    setSelectedItemIndex = -1;
+    renderSetlistsModal();
+  };
+
+  btnAddToSet.onclick = ()=>{
+    if(!setDraft) return;
+    const songId = addSongSelect.value;
+    if(!songId) return;
+    setDraft.items = setDraft.items || [];
+    setDraft.items.push({songId});
+    renderSetItems();
+  };
+
+  btnRemoveFromSet.onclick = ()=>{
+    if(!setDraft) return;
+    if(setSelectedItemIndex<0) { alert("請先選取要移除的歌曲"); return; }
+    setDraft.items.splice(setSelectedItemIndex, 1);
+    setSelectedItemIndex = -1;
+    renderSetItems();
+  };
+
+  btnSetClose.onclick = ()=> closeSetlistsModal(false);
+  btnSetCancel.onclick = ()=> closeSetlistsModal(false);
+  btnSetSave.onclick = ()=> closeSetlistsModal(true);
+
+  btnSetExport.onclick = ()=>{
+    const dataStr = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(SETLISTS, null, 2));
+    const a = document.createElement("a");
+    a.href = dataStr;
+    a.download = "pp_lite_v43_setlists.json";
+    a.click();
+  };
+  btnSetImport.onclick = ()=> setImportFile.click();
+  setImportFile.onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt)=>{
+      try{
+        const json = JSON.parse(evt.target.result);
+        if(Array.isArray(json)){
+          if(confirm("匯入會覆蓋目前所有清單，確定？")){
+            SETLISTS = json;
+            saveSetlists();
+            state.setlistId = SETLISTS[0]?.id || state.setlistId;
+            state.songId = null;
+            state.slideIndex = 0;
+            resolveState();
+            syncAll();
+            renderAll();
+            alert("匯入成功！");
+          }
+        }else{
+          alert("格式錯誤：需要 []");
+        }
+      }catch(err){
+        alert("讀取失敗");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  /** =========================
+   * 10) Bind main
+   * ========================= */
   setSelect.onchange = (e)=>{
     state.setlistId = e.target.value;
     state.songId = null;
@@ -1204,23 +2022,19 @@ function mountController(){
     renderAll();
     syncStateOnly();
   };
+
   btnOpenOut.onclick = openOutput;
+  btnEditLibrary.onclick = openLibraryModal;
+  btnEditSetlists.onclick = openSetlistsModal;
 
-  setInterval(()=>{
-    const d = new Date();
-    const hh = String(d.getHours()).padStart(2,"0");
-    const mm = String(d.getMinutes()).padStart(2,"0");
-    const clk = document.getElementById("clock");
-    if(clk) clk.textContent = `${hh}:${mm}`;
-  }, 1000);
+  // close modal when clicking backdrop
+  modalLibrary.addEventListener("click", (e)=>{ if(e.target===modalLibrary) closeLibraryModal(false); });
+  modalSetlists.addEventListener("click", (e)=>{ if(e.target===modalSetlists) closeSetlistsModal(false); });
 
-  window.addEventListener("message", (ev)=>{
-    const d = ev.data || {};
-    if(d.type==="OUTPUT_READY"){ syncAll(); }
-  });
-
+  // keyboard 1-9
   window.addEventListener("keydown", (e)=>{
     if(IS_OUTPUT) return;
+    if(modalOpen) return;
     const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : "";
     if(tag==="INPUT" || tag==="TEXTAREA" || e.isComposing) return;
 
@@ -1240,15 +2054,28 @@ function mountController(){
     }
   });
 
-  document.getElementById("btnEditLibrary").onclick = ()=>alert("此 v4.3 版本省略歌曲庫/清單編輯 Modal。\n若你要『完整含 Modal 的 v4.3』我可以直接貼整份。");
-  document.getElementById("btnEditSetlists").onclick = ()=>alert("此 v4.3 版本省略歌曲庫/清單編輯 Modal。\n若你要『完整含 Modal 的 v4.3』我可以直接貼整份。");
+  // clock
+  setInterval(()=>{
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const clk = document.getElementById("clock");
+    if(clk) clk.textContent = `${hh}:${mm}`;
+  }, 1000);
 
+  // output ready
+  window.addEventListener("message", (ev)=>{
+    const d = ev.data || {};
+    if(d.type==="OUTPUT_READY"){ syncAll(); }
+  });
+
+  // initial
   renderAll();
   syncAll();
 }
 
 /** =========================
- * 7) Entry
+ * 11) Entry
  * ========================= */
 if(IS_OUTPUT){
   mountOutput();
